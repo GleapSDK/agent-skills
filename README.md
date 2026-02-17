@@ -1,5 +1,7 @@
 # Gleap Agent Skills
 
+![Gleap Agent Skills](https://pub-01880b8170424478bf33a7d7174fa371.r2.dev/agent-skills.png)
+
 Agent skills that help AI coding agents integrate and work with [Gleap](https://gleap.io). Built on the open [Agent Skills](https://agentskills.io) format.
 
 ## Getting started
