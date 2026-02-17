@@ -39,6 +39,10 @@ Use `/` in the chat to select and run a skill directly, or just describe what yo
 
 No configuration needed. The agent reads the skill when your prompt matches.
 
+### Other agents
+
+These skills are compatible with most AI coding agents that support the Agent Skills format. See [agentskills.io](https://agentskills.io/) for a full list of supported agents and more details.
+
 ## Skills
 
 ### gleap-sdk-setup
