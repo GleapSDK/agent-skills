@@ -37,7 +37,16 @@ Check in this order (first match wins):
 
 5. **`index.html` exists (no `package.json`)?** -> **JavaScript** CDN approach (`platform-javascript.md`)
 
-6. **Nothing detected** -> Ask the user which platform they are targeting.
+6. **Server-side web framework detected?** These all use the **JavaScript SDK** on the client side (`platform-javascript.md`):
+   - `composer.json` exists (PHP / Laravel) — use CDN or npm depending on whether a JS build pipeline exists
+   - `Gemfile` with `rails` (Ruby on Rails) — use CDN in layouts, or npm if Webpacker/esbuild/importmap is present
+   - `requirements.txt` / `pyproject.toml` with `django` or `flask` (Python) — use CDN in base templates
+   - `*.cshtml` / `*.csproj` files (.NET / ASP.NET) — use CDN in layout views
+   - `pom.xml` / `build.gradle` with Spring Boot (Java) — use CDN in Thymeleaf templates
+   - Any other web framework (Go, Elixir/Phoenix, etc.) — use CDN approach
+   - Note: If the project also has a `package.json` with a frontend framework, step 2 already covers this.
+
+7. **Nothing detected** -> Ask the user which platform they are targeting.
 
 ### Detection Commands
 
@@ -52,8 +61,23 @@ Use `Glob` to scan for key files:
 - `app/build.gradle`
 - `config.xml`
 - `index.html`
+- `composer.json`
+- `Gemfile`
+- `requirements.txt`
+- `pyproject.toml`
 
 If `package.json` is found, use `Read` to inspect its `dependencies` and `devDependencies` keys.
+
+## API Key Resolution
+
+Before asking the user for their API key, check these locations in order:
+
+1. **User provided it in the conversation** (e.g., "add Gleap with token abc123") — use it directly
+2. **`.env` file** in the project root — look for `GLEAP_API_KEY=...`
+3. **Environment variable** — check if `GLEAP_API_KEY` is set via `echo $GLEAP_API_KEY`
+4. **Not found** — ask the user to provide their API key (available at https://app.gleap.io under Project Settings > Security > API Key)
+
+When a key is found or provided, offer to save it to the project's `.env` file (creating it if needed, and adding `.env` to `.gitignore` if not already there) so it's available for future use.
 
 ## Workflow
 
@@ -61,12 +85,13 @@ Follow these steps in order:
 
 1. **Fetch latest SDK versions**: Run `scripts/get-latest-versions.sh` from this skill's directory. Use the returned versions in all install commands instead of hardcoded version numbers.
 2. **Detect platform** using the priority rules above.
-3. **Confirm with user**: State the detected platform and ask for confirmation. If the user already specified a platform, skip this step.
-4. **Read platform guide**: Read the matching `platform-{name}.md` file from this skill's directory.
-5. **Install SDK**: Walk the user through installing the dependency using the latest version from step 1. Run install commands when the user approves. Verify installation succeeded.
-6. **Initialize SDK**: Add initialization code to the correct file. The user must provide their API key or use a placeholder `YOUR_API_KEY`. Remind them to get one at https://app.gleap.io if needed.
-7. **Configure platform**: Apply required permissions, manifest entries, or additional config from the platform guide.
-8. **Verify**: Suggest building/running the project to confirm integration works.
+3. **Resolve API key** using the API Key Resolution steps above.
+4. **Confirm with user**: State the detected platform and ask for confirmation. If the user already specified a platform, skip this step.
+5. **Read platform guide**: Read the matching `platform-{name}.md` file from this skill's directory.
+6. **Install SDK**: Walk the user through installing the dependency using the latest version from step 1. Run install commands when the user approves. Verify installation succeeded.
+7. **Initialize SDK**: Add initialization code using the resolved API key.
+8. **Configure platform**: Apply required permissions, manifest entries, or additional config from the platform guide.
+9. **Verify**: Suggest building/running the project to confirm integration works.
 
 ## Post-Setup API Guidance
 
@@ -81,7 +106,6 @@ Re-read the platform file's API section for the correct method signatures, as th
 
 ## Important Notes
 
-- API keys are obtained free at https://app.gleap.io
 - `initialize()` must be called exactly once in the application lifecycle
 - For cross-platform frameworks (React Native, Flutter, Ionic/Capacitor), both iOS and Android platform-specific configuration (permissions) is needed
 - The JavaScript CDN approach works for any web context and does not require npm

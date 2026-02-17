@@ -19,7 +19,7 @@ Search the codebase for Intercom integration. Use `Grep` to find:
 - `composer.json`: `intercom/intercom-php`
 - `Gemfile`: `intercom-rails`, `intercom-ruby`
 
-### Code patterns
+### Code patterns (client-side JavaScript — used by ALL web frameworks)
 - JavaScript: `Intercom(`, `window.intercomSettings`, `widget.intercom.io`, `@intercom/messenger-js-sdk`
 - iOS: `import Intercom`, `Intercom.setApiKey`, `Intercom.loginUser`
 - Android: `import com.intercom`, `Intercom.initialize`, `Intercom.client()`
@@ -29,30 +29,44 @@ Search the codebase for Intercom integration. Use `Grep` to find:
 
 Report all findings to the user before proceeding.
 
+## API Key Resolution
+
+Before asking the user for their Gleap API key, check these locations in order:
+
+1. **User provided it in the conversation** — use it directly
+2. **`.env` file** in the project root — look for `GLEAP_API_KEY=...`
+3. **Environment variable** — check if `GLEAP_API_KEY` is set via `echo $GLEAP_API_KEY`
+4. **Not found** — ask the user (available at https://app.gleap.io > Project Settings > Security > API Key)
+
+When a key is found or provided, offer to save it to `.env` (and add `.env` to `.gitignore` if needed).
+
 ## Workflow
 
 1. **Detect Intercom** using the patterns above. Report which platforms and files are affected.
 2. **Confirm scope** with the user: which parts to migrate (client SDK, server API, or both).
-3. **Read the mapping file** for the detected platform from this skill's directory.
-4. **Remove Intercom SDK**: Uninstall packages, remove script tags, delete imports and configuration.
-5. **Install Gleap SDK**: Follow the installation steps from the mapping file (or reference the `gleap-sdk-setup` skill if installed).
-6. **Replace API calls**: Use the mapping tables to convert every Intercom call to its Gleap equivalent.
-7. **Migrate server-side code** if applicable: Replace Intercom REST API calls with Gleap REST API calls. See `mapping-server-api.md`.
-8. **Clean up**: Remove Intercom-specific config (API keys, app IDs, `intercomSettings`, push notification handlers).
-9. **Verify**: Build and run the project. Search for any remaining `intercom` references.
+3. **Resolve Gleap API key** using the API Key Resolution steps above.
+4. **Read the mapping file** for the detected platform from this skill's directory.
+5. **Remove Intercom SDK**: Uninstall packages, remove script tags, delete imports and configuration.
+6. **Install Gleap SDK**: Follow the installation steps from the mapping file (or reference the `gleap-sdk-setup` skill if installed).
+7. **Replace API calls**: Use the mapping tables to convert every Intercom call to its Gleap equivalent. Use the resolved API key in initialization code.
+8. **Migrate server-side code** if applicable: Replace Intercom REST API calls with Gleap REST API calls. See `mapping-server-api.md`.
+9. **Clean up**: Remove Intercom-specific config (API keys, app IDs, `intercomSettings`, push notification handlers).
+10. **Verify**: Build and run the project. Search for any remaining `intercom` references.
 
 ## Mapping Files
 
 Read the appropriate file based on detected platform:
 
-- **JavaScript / Web**: `mapping-javascript.md`
+- **JavaScript / Web**: `mapping-javascript.md` — also applies to all server-side web frameworks (Laravel, Django, Rails, ASP.NET, Spring Boot, Phoenix, etc.) since they all use the JavaScript SDK on the client side
 - **iOS (Swift / Objective-C)**: `mapping-ios.md`
 - **Android (Kotlin / Java)**: `mapping-android.md`
 - **React Native**: `mapping-react-native.md`
 - **Flutter**: `mapping-flutter.md`
 - **Server-side REST API**: `mapping-server-api.md`
 
-For projects using multiple platforms (e.g., React Native with server API), read all relevant files.
+For projects using multiple platforms, read all relevant files. Common combinations:
+- **Web framework + server SDK** (e.g., Laravel with `intercom-php`, Rails with `intercom-ruby`): Use `mapping-javascript.md` for client-side and `mapping-server-api.md` for server-side
+- **React Native + server API**: Use `mapping-react-native.md` and `mapping-server-api.md`
 
 ## Important Notes
 
