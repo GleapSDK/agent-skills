@@ -32,6 +32,8 @@ You can also use `/` commands to select and run a skill directly:
 
 ### Cursor
 
+Install the **Gleap** plugin from the [Cursor Marketplace](https://cursor.com/marketplace). It bundles all skills below plus the hosted Gleap MCP server (`https://mcp.gleap.io/mcp`), so Cursor can also work with your Gleap tickets, contacts and help center. On first connect, Cursor opens the Gleap sign-in in your browser; pick the project you want to connect. No API key needed.
+
 Use `/` in the chat to select and run a skill directly, or just describe what you need — Cursor's agent will pick the right skill automatically.
 
 ### Codex
@@ -46,6 +48,16 @@ No configuration needed. The agent reads the skill when your prompt matches.
 These skills are compatible with most AI coding agents that support the Agent Skills format. See [agentskills.io](https://agentskills.io/) for a full list of supported agents and more details.
 
 ## Skills
+
+### gleap
+
+Work with your Gleap workspace through the [Gleap MCP server](https://www.gleap.ai/mcp): search and triage tickets, read and answer customer conversations, check feature request demand, manage contacts and help center articles, and pull support statistics. Requires the Gleap MCP server (included in the Cursor plugin; see the [setup guide](https://www.gleap.ai/mcp) for other agents).
+
+**Example prompts:**
+- "Summarize the open Gleap tickets tagged billing from this week"
+- "Which feature requests have the most upvotes right now?"
+- "Draft a reply to ticket #4821 and stage it in the composer"
+- "What was our median first response time last month?"
 
 ### gleap-sdk-setup
 
@@ -74,3 +86,13 @@ Switch from Intercom to Gleap. The agent finds all Intercom references in your c
 Each skill is a directory with a `SKILL.md` file containing instructions and metadata. Agents load only skill names and descriptions at startup, then read the full instructions when a matching task comes up — keeping context efficient.
 
 Learn more about the [Agent Skills format](https://agentskills.io/specification).
+
+## MCP server and network
+
+The plugin's `mcp.json` connects to `https://mcp.gleap.io/mcp` (Streamable HTTP). US-hosted projects can point it at `https://mcp.us.gleap.ai/mcp` instead. Authentication is OAuth 2.1 (authorization code with PKCE and dynamic client registration) against `https://dashapi.gleap.io` (US: `https://dashapi.us.gleap.ai`); access is limited to the one Gleap project you approve. The plugin stores no API keys and requests no filesystem or shell access.
+
+The `gleap-sdk-setup` skill's `scripts/get-latest-versions.sh` reads the latest SDK versions from npm, Maven Central, pub.dev and GitHub. It sends no data.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
