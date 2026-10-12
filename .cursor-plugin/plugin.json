@@ -1,0 +1,14 @@
+{
+  "name": "gleap",
+  "version": "1.0.0",
+  "description": "Gleap customer support and feedback in Cursor. Connects the hosted Gleap MCP server to search and triage tickets, answer customers, check feature request demand and pull support metrics, and adds skills to set up the Gleap SDK and migrate from Intercom. Sign in with your Gleap account on first connect.",
+  "author": {
+    "name": "Gleap",
+    "email": "hello@gleap.io"
+  },
+  "homepage": "https://www.gleap.ai/mcp",
+  "repository": "https://github.com/GleapSDK/agent-skills",
+  "license": "MIT",
+  "keywords": ["gleap", "gleap mcp", "gleap tickets", "gleap sdk", "gleap feedback"],
+  "logo": "assets/logo.svg"
+}
