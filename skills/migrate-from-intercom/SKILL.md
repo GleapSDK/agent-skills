@@ -64,7 +64,7 @@ Intercom and Gleap prove a logged-in user the same way: the backend signs someth
 | `intercom_user_jwt` (JWT signed with Intercom's identity verification secret) | Identity token: an HS256 JWT signed with one of the project's identity keys (Gleap dashboard > Settings > Security > Identity keys), key id in the `kid` header, `exp` at most one hour ahead |
 | `user_id` claim | `userId` claim (required) |
 | `email`, `name`, `phone` claims | `email`, `name`, `phone` claims |
-| Extra claims (`plan`, `company`, provider ids …) | Extra top-level claims become signed attributes on the contact; `company` is `{ "id": "...", "name": "..." }`, provider ids are `stripeCustomerId`, `chargebeeCustomerId`, `paddleCustomerId`, `revenuecatAppUserId`, `shopifyCustomerId` |
+| Extra claims (`plan`, `company`, provider ids …) | Extra top-level claims become signed attributes on the contact; `company` is `{ "id": "...", "name": "..." }`, provider ids are `stripeCustomerId`, `chargebeeCustomerId`, `paddleCustomerId`, `lemonsqueezyCustomerId`, `revenuecatAppUserId`, `shopifyCustomerId`, `woocommerceCustomerId` |
 | `Intercom.setUserJwt(jwt)` / `Intercom('boot', { intercom_user_jwt })` | `Gleap.setUserJwt(token)` after login and on app start (per-platform names in the mapping files); `clearIdentity()` on logout |
 | `user_hash` (identity verification, HMAC-SHA256 of `user_id` with Intercom's secret) | Legacy user hash: hex HMAC-SHA256 of the user id with the project's secret API key, passed where the SDK takes the user hash (third argument of `identify`). Works while the project's "Accept legacy user hash" switch is on; prefer the token for the migration |
 

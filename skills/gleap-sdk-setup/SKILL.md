@@ -104,7 +104,7 @@ Decide this once, before writing an identify call, and state the result in the P
 Gleap trusts what the backend signs and nothing the browser or app says about itself. The flow:
 
 1. **The backend signs an identity token**: an HS256 JWT signed with one of the project's identity keys (Gleap dashboard > Settings > Security > Identity keys; the secret is shown once). Put the key id in the `kid` header and the secret in an environment variable. The secret never reaches the client.
-   - Claims: `userId` (required, the same id the app uses for the user), optional `email`, `name`, `phone`, `company` (`{ "id": "...", "name": "..." }`), `plan`, provider ids such as `stripeCustomerId`, `chargebeeCustomerId`, `paddleCustomerId`, `revenuecatAppUserId`, `shopifyCustomerId`. Every further top-level claim (string, number or boolean) becomes a signed attribute on the contact.
+   - Claims: `userId` (required, the same id the app uses for the user), optional `email`, `name`, `phone`, `company` (`{ "id": "...", "name": "..." }`), `plan`, provider ids such as `stripeCustomerId`, `chargebeeCustomerId`, `paddleCustomerId`, `lemonsqueezyCustomerId`, `revenuecatAppUserId`, `shopifyCustomerId`, `woocommerceCustomerId`. Every further top-level claim (string, number or boolean) becomes a signed attribute on the contact.
    - `exp`: required for new integrations, at most one hour ahead. Omit claims the app does not have; never invent values.
 2. **Expose it on an authenticated endpoint** of the app's backend (for example `GET /api/gleap-token`) that returns the token for the signed-in user.
 3. **The app calls `setUserJwt(token)`** after login and on every app start while a user is signed in, and `clearIdentity()` on logout. Everything Gleap should know about the contact is a claim in the token; the client passes no other contact fields.
@@ -121,7 +121,7 @@ Gleap trusts what the backend signs and nothing the browser or app says about it
 | Cordova | No `setUserJwt`; pass the token as the third argument of `identify(userId, data, token)` |
 | FlutterFlow | A Custom Action that calls the Flutter method |
 
-**Installed SDK without `setUserJwt`** (older version, Cordova): pass the token where the legacy user hash goes, as the third argument of `identify(userId, data, token)` (per-platform shape in the platform guide). Suggest updating the SDK in the PR so `setUserJwt` can be used.
+**Installed SDK without `setUserJwt`** (older version, Cordova): pass the token where the legacy user hash goes, as the third argument of `identify(userId, data, token)` (per-platform shape in the platform guide). Suggest updating the SDK in the PR so `setUserJwt` can be used. An SDK without `setUserJwt` sends no session grant, so on a project in Signed mode Kai treats those users as unverified until the app is upgraded.
 
 Backend example (Node, `npm install jsonwebtoken`; any JWT library in any language works the same way: HS256, `kid` header, one-hour expiry):
 
