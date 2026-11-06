@@ -108,7 +108,7 @@ Intercom's identity verification signs on the backend: an HMAC-SHA256 of `user_i
 
 | Intercom | Gleap |
 |----------|-------|
-| Identity verification secret | Identity key: id in `GLEAP_IDENTITY_KEY_ID`, secret in `GLEAP_IDENTITY_KEY_SECRET` (never in the client) |
+| Identity verification secret | Identity key: id in `GLEAP_IDENTITY_KEY_ID`, secret in `GLEAP_IDENTITY_SECRET` (never in the client) |
 | `intercom_user_jwt` claims `user_id`, `email`, `name`, … | `userId` (required), `email`, `name`, `phone`, `company: { id, name }`, `plan`, provider ids (`stripeCustomerId`, …); every other top-level claim becomes a signed attribute |
 | `user_hash` = HMAC-SHA256(`user_id`, secret) | Legacy user hash = hex HMAC-SHA256(`userId`, the project's secret API key); accepted while "Accept legacy user hash" is on |
 
@@ -135,7 +135,7 @@ const gleapToken = jwt.sign(
     plan: user.plan,
     stripeCustomerId: user.stripeCustomerId,
   },
-  process.env.GLEAP_IDENTITY_KEY_SECRET,
+  process.env.GLEAP_IDENTITY_SECRET,
   { algorithm: "HS256", keyid: process.env.GLEAP_IDENTITY_KEY_ID, expiresIn: "1h" }
 );
 ```

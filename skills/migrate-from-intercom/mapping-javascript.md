@@ -118,7 +118,7 @@ Intercom('boot', {
 // backend (Node): HS256 with the project's identity key, kid header, 1 h expiry
 const token = jwt.sign(
   { userId: "123", email: "user@example.com", company: { id: "c1", name: "ACME" }, plan: "Pro", value: 199, subscription_tier: "gold" },
-  process.env.GLEAP_IDENTITY_KEY_SECRET,
+  process.env.GLEAP_IDENTITY_SECRET,
   { algorithm: "HS256", keyid: process.env.GLEAP_IDENTITY_KEY_ID, expiresIn: "1h" }
 );
 

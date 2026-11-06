@@ -138,13 +138,13 @@ export function gleapIdentityToken(user) {
       plan: user.plan,
       stripeCustomerId: user.stripeCustomerId,
     },
-    process.env.GLEAP_IDENTITY_KEY_SECRET,
+    process.env.GLEAP_IDENTITY_SECRET,
     { algorithm: "HS256", keyid: process.env.GLEAP_IDENTITY_KEY_ID, expiresIn: "1h" }
   );
 }
 ```
 
-Environment variables the backend needs: `GLEAP_IDENTITY_KEY_ID` (the key id, shown in the dashboard) and `GLEAP_IDENTITY_KEY_SECRET` (the secret, shown once on creation). Add them to `.env.example` with empty values, never commit real values.
+Environment variables the backend needs: `GLEAP_IDENTITY_KEY_ID` (the key id, shown in the dashboard) and `GLEAP_IDENTITY_SECRET` (the secret, shown once on creation). Add them to `.env.example` with empty values, never commit real values.
 
 ### No backend to change: plain unsigned identify
 
@@ -157,7 +157,7 @@ Existing integrations may pass a hex HMAC-SHA256 of the user id, computed server
 ### What the PR description must say
 
 - Whether identify is **signed with the identity token**, **signed with the legacy user hash**, or **unsigned**, and why.
-- Which **environment variables** the backend needs (for the token: `GLEAP_IDENTITY_KEY_ID`, `GLEAP_IDENTITY_KEY_SECRET`).
+- Which **environment variables** the backend needs (for the token: `GLEAP_IDENTITY_KEY_ID`, `GLEAP_IDENTITY_SECRET`).
 
 ## Post-Setup API Guidance
 
