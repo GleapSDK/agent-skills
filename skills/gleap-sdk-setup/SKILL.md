@@ -148,7 +148,7 @@ Environment variables the backend needs: `GLEAP_IDENTITY_KEY_ID` (the key id, sh
 
 ### No backend to change: plain unsigned identify
 
-Only when the app has no backend (static site, prototype, a client-only app): call `identify(userId, data)` without a token. Say so in the PR: the identity is unverified, Kai shows no billing or account data to such contacts, and fields the project marks "Only signed updates" (Settings > Contacts > Attributes) ignore these writes. Never put plan, billing, company or provider ids in an unsigned identify; they belong in the token.
+Only when the app has no backend (static site, prototype, a client-only app): call `identify(userId, data)` without a token. Say so in the PR: the identity is unverified, Kai shows no billing or account data to such contacts, and fields the project marks "Only signed updates" (Settings > Inbox & tickets > Data attributes, Contact tab) ignore these writes. Never put plan, billing, company or provider ids in an unsigned identify; they belong in the token.
 
 ### Legacy user hash
 
