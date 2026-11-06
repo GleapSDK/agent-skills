@@ -103,24 +103,36 @@ For audio recording:
 
 ### Identify Users
 
+Decide signed vs. unsigned with the "User Identification" section of `SKILL.md` and say in the PR which one the app uses.
+
+**Signed (the app has a logged-in user and a backend):** the backend signs the identity token (HS256 with the project's identity key, `kid` header, claims `userId` + the contact's data, `exp` at most one hour ahead) and the app passes it after login and on app start:
+
+```swift
+// after login and on every app start while signed in; `token` comes from your backend
+Gleap.setUserJwt(token)
+```
+
+Everything Gleap should know about the contact (email, name, company, plan, `stripeCustomerId`, …) is a claim in the token; the client passes no other contact fields. Call `clearIdentity()` on logout. On an installed SDK without `setUserJwt`, pass the token where the legacy user hash goes:
+
+```swift
+Gleap.identifyContact("USER_ID", andData: nil, andUserHash: token)
+```
+
+**Unsigned (no backend to change):** plain identify. Say so in the PR. Never put plan, billing, company or provider ids here; the project may mark such fields "Only signed updates", and then these writes are ignored.
+
 ```swift
 let userProperty = GleapUserProperty()
 userProperty.name = "Franz"
 userProperty.email = "franz@example.com"
-userProperty.phone = "+1 (902) 123123"
-userProperty.value = 199.95
-userProperty.plan = "Pro plan"
-userProperty.companyId = "29883"
-userProperty.companyName = "ACME inc."
 userProperty.customData = ["role": "admin"]
 
 Gleap.identifyContact("USER_ID", andData: userProperty)
 ```
 
-Update contact (partial updates supported):
+Update contact (partial updates, unsigned; fields marked "Only signed updates" stay unchanged):
 ```swift
 let props = GleapUserProperty()
-props.plan = "Enterprise"
+props.customData = ["onboardingStep": 3]
 Gleap.updateContact(props)
 ```
 

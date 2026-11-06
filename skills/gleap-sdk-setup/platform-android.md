@@ -68,15 +68,29 @@ Add to `AndroidManifest.xml`:
 
 ### Identify Users
 
+Decide signed vs. unsigned with the "User Identification" section of `SKILL.md` and say in the PR which one the app uses.
+
+**Signed (the app has a logged-in user and a backend):** the backend signs the identity token (HS256 with the project's identity key, `kid` header, claims `userId` + the contact's data, `exp` at most one hour ahead) and the app passes it after login and on app start:
+
+```java
+// after login and on every app start while signed in; `token` comes from your backend
+Gleap.getInstance().setUserJwt(token);
+```
+
+Everything Gleap should know about the contact (email, name, company, plan, `stripeCustomerId`, …) is a claim in the token; the client passes no other contact fields. Call `clearIdentity()` on logout. On an installed SDK without `setUserJwt`, pass the token where the legacy user hash goes:
+
+```java
+GleapSessionProperties props = new GleapSessionProperties();
+props.setHash(token);
+Gleap.getInstance().identifyContact("USER_ID", props);
+```
+
+**Unsigned (no backend to change):** plain identify. Say so in the PR. Never put plan, billing, company or provider ids here; the project may mark such fields "Only signed updates", and then these writes are ignored.
+
 ```java
 GleapSessionProperties sessionProperties = new GleapSessionProperties();
 sessionProperties.setName("Franz");
 sessionProperties.setEmail("franz@example.com");
-sessionProperties.setPhone("+1 (902) 123123");
-sessionProperties.setValue(199.95);
-sessionProperties.setPlan("Pro plan");
-sessionProperties.setCompanyId("29883");
-sessionProperties.setCompanyName("ACME inc.");
 
 JSONObject customData = new JSONObject();
 customData.put("role", "admin");
@@ -85,10 +99,12 @@ sessionProperties.setCustomData(customData);
 Gleap.getInstance().identifyContact("USER_ID", sessionProperties);
 ```
 
-Update contact (partial updates supported):
+Update contact (partial updates, unsigned; fields marked "Only signed updates" stay unchanged):
 ```java
 GleapSessionProperties props = new GleapSessionProperties();
-props.setPlan("Enterprise");
+JSONObject custom = new JSONObject();
+custom.put("onboardingStep", 3);
+props.setCustomData(custom);
 Gleap.getInstance().updateContact(props);
 ```
 

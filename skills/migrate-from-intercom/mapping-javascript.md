@@ -77,8 +77,11 @@ Gleap.identify("12345", {
 
 | Intercom | Gleap |
 |----------|-------|
-| `Intercom('boot', { user_id, email, name, ... })` | `Gleap.identify(userId, { email, name, ... })` |
-| `Intercom('update', { name: 'New' })` | `Gleap.updateContact({ name: 'New' })` |
+| `Intercom('boot', { intercom_user_jwt: token })` | `Gleap.setUserJwt(token)` (the token re-signed by your backend with Gleap's identity key; no other contact fields from the client) |
+| `Intercom('update', { intercom_user_jwt: newToken })` | `Gleap.setUserJwt(newToken)` |
+| `Intercom('boot', { user_id, user_hash, ... })` (identity verification) | `Gleap.identify(userId, { ... }, userHash)` with the legacy user hash, or better `Gleap.setUserJwt(token)` |
+| `Intercom('boot', { user_id, email, name, ... })` (unsigned) | `Gleap.identify(userId, { email, name, ... })` (unsigned; only without a backend) |
+| `Intercom('update', { name: 'New' })` | `Gleap.updateContact({ name: 'New' })` (unsigned; fields marked "Only signed updates" stay unchanged) |
 | `Intercom('shutdown')` | `Gleap.clearIdentity()` |
 | `Intercom('getVisitorId')` | No equivalent (Gleap uses guest sessions) |
 
@@ -91,7 +94,8 @@ Gleap.identify("12345", {
 | `name` | `name` |
 | `phone` | `phone` |
 | `created_at` (unix timestamp) | `createdAt` (Date object) |
-| `user_hash` | Third argument to `identify()` |
+| `intercom_user_jwt` | `Gleap.setUserJwt(token)`; claims map `user_id` → `userId`, `email`/`name`/`phone` unchanged, `company` → `company: { id, name }`, every other claim → a signed attribute |
+| `user_hash` | Third argument to `identify()` (legacy user hash, HMAC-SHA256 of the user id with Gleap's secret API key; works while "Accept legacy user hash" is on) |
 | `company.company_id` | `companyId` |
 | `company.name` | `companyName` |
 | `company.plan` | `plan` |
@@ -109,16 +113,39 @@ Intercom('boot', {
 });
 ```
 
-**After (Gleap):**
+**After (Gleap, signed, the app has a backend):** the backend signs the same facts into the identity token, the client passes only the token.
+```javascript
+// backend (Node): HS256 with the project's identity key, kid header, 1 h expiry
+const token = jwt.sign(
+  { userId: "123", email: "user@example.com", company: { id: "c1", name: "ACME" }, plan: "Pro", value: 199, subscription_tier: "gold" },
+  process.env.GLEAP_IDENTITY_KEY_SECRET,
+  { algorithm: "HS256", keyid: process.env.GLEAP_IDENTITY_KEY_ID, expiresIn: "1h" }
+);
+
+// client, after login and on app start
+Gleap.setUserJwt(token);
+```
+
+**After (Gleap, unsigned, no backend):** only harmless data; plan, spend and company stay out of an unsigned identify.
 ```javascript
 Gleap.identify("123", {
   email: "user@example.com",
-  companyId: "c1",
-  companyName: "ACME",
-  plan: "Pro",
-  value: 199,
   customData: { subscription_tier: "gold" },
 });
+```
+
+**Identity verification (`intercom_user_jwt` / `user_hash`):**
+
+**Before (Intercom):**
+```javascript
+Intercom('boot', { app_id: 'APP_ID', intercom_user_jwt: jwtFromYourBackend });
+// or, older: Intercom('boot', { app_id: 'APP_ID', user_id: '123', user_hash: hmacFromYourBackend });
+```
+
+**After (Gleap):**
+```javascript
+Gleap.setUserJwt(tokenFromYourBackend); // same claims, re-signed with Gleap's identity key
+// legacy hash, only while "Accept legacy user hash" is on: Gleap.identify("123", {}, hmacFromYourBackend);
 ```
 
 ## Event Tracking

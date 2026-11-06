@@ -73,15 +73,28 @@ document.addEventListener("turbo:load", function () {
 
 ### Identify Users
 
+Decide signed vs. unsigned with the "User Identification" section of `SKILL.md` and say in the PR which one the app uses.
+
+**Signed (the app has a logged-in user and a backend):** the backend signs the identity token (HS256 with the project's identity key, `kid` header, claims `userId` + the contact's data, `exp` at most one hour ahead) and the app passes it after login and on app start:
+
+```javascript
+// after login and on every app start while signed in
+const { token } = await fetch("/api/gleap-token", { credentials: "include" }).then((r) => r.json());
+Gleap.setUserJwt(token);
+```
+
+Everything Gleap should know about the contact (email, name, company, plan, `stripeCustomerId`, …) is a claim in the token; the client passes no other contact fields. Call `clearIdentity()` on logout. On an installed SDK without `setUserJwt`, pass the token where the legacy user hash goes:
+
+```javascript
+Gleap.identify("USER_ID", {}, token);
+```
+
+**Unsigned (no backend to change):** plain identify. Say so in the PR. Never put plan, billing, company or provider ids here; the project may mark such fields "Only signed updates", and then these writes are ignored.
+
 ```javascript
 Gleap.identify("USER_ID", {
   name: "Franz",
   email: "franz@example.com",
-  phone: "+1 (902) 123123",
-  value: 199.95,
-  plan: "Pro plan",
-  companyId: "12398958484",
-  companyName: "ACME inc.",
   customData: {
     role: "admin",
     logins: 42,
@@ -89,9 +102,9 @@ Gleap.identify("USER_ID", {
 });
 ```
 
-Update contact data (partial updates supported):
+Update contact data (partial updates, unsigned; fields marked "Only signed updates" stay unchanged):
 ```javascript
-Gleap.updateContact({ plan: "Enterprise" });
+Gleap.updateContact({ customData: { onboardingStep: 3 } });
 ```
 
 Clear identity on logout:

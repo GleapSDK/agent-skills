@@ -108,17 +108,29 @@ Audio recordings:
 
 ### Identify Users
 
+Decide signed vs. unsigned with the "User Identification" section of `SKILL.md` and say in the PR which one the app uses.
+
+**Signed (the app has a logged-in user and a backend):** the backend signs the identity token (HS256 with the project's identity key, `kid` header, claims `userId` + the contact's data, `exp` at most one hour ahead) and the app passes it after login and on app start:
+
+```dart
+// after login and on every app start while signed in; `token` comes from your backend
+await Gleap.setUserJwt(token: token);
+```
+
+Everything Gleap should know about the contact (email, name, company, plan, `stripeCustomerId`, …) is a claim in the token; the client passes no other contact fields. Call `clearIdentity()` on logout. On an installed SDK without `setUserJwt`, pass the token where the legacy user hash goes:
+
+```dart
+Gleap.identify(userId: 'USER_ID', userProperties: GleapUserProperty(), userHash: token);
+```
+
+**Unsigned (no backend to change):** plain identify. Say so in the PR. Never put plan, billing, company or provider ids here; the project may mark such fields "Only signed updates", and then these writes are ignored.
+
 ```dart
 Gleap.identify(
   userId: 'USER_ID',
   userProperties: GleapUserProperty(
     name: 'Franz',
     email: 'franz@example.com',
-    phone: '+1 (902) 123123',
-    companyName: 'ACME inc.',
-    companyId: '19283',
-    plan: 'Pro plan',
-    value: 199.95,
     customData: <String, dynamic>{
       'role': 'admin',
     },
@@ -126,7 +138,7 @@ Gleap.identify(
 );
 ```
 
-With identity verification:
+Legacy user hash (existing integrations; a server-side HMAC-SHA256 of the user id with the project's secret API key, accepted while "Accept legacy user hash" is on):
 ```dart
 Gleap.identify(
   userId: 'USER_ID',
@@ -135,10 +147,10 @@ Gleap.identify(
 );
 ```
 
-Update contact (partial updates supported):
+Update contact (partial updates, unsigned; fields marked "Only signed updates" stay unchanged):
 ```dart
 Gleap.updateContact(
-  userProperties: GleapUserProperty(plan: 'Enterprise'),
+  userProperties: GleapUserProperty(customData: <String, dynamic>{'onboardingStep': 3}),
 );
 ```
 

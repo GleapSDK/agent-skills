@@ -69,7 +69,10 @@ import Gleap from 'react-native-gleapsdk';
 
 Gleap.initialize("GLEAP_API_KEY");
 
-// After login
+// After login and on app start, signed (the app has a backend): the token carries userId, email, name, …
+await Gleap.setUserJwt(token);
+
+// Unsigned, only without a backend
 Gleap.identify("123", {
   email: "user@example.com",
   name: "John Doe",
@@ -80,7 +83,9 @@ Gleap.identify("123", {
 
 | Intercom | Gleap |
 |----------|-------|
-| `Intercom.loginUserWithUserAttributes({ userId, email })` | `Gleap.identify(userId, { email, ... })` |
+| `Intercom.setUserJwt(jwt)` | `Gleap.setUserJwt(token)` (the token re-signed by your backend with Gleap's identity key; after login and on app start, no other contact fields from the client) |
+| `Intercom.setUserHash(hash)` + `loginUserWithUserAttributes` | `Gleap.identifyWithUserHash(userId, { ... }, hash)` (legacy user hash), or better `Gleap.setUserJwt(token)` |
+| `Intercom.loginUserWithUserAttributes({ userId, email })` (unsigned) | `Gleap.identify(userId, { email, ... })` (unsigned; only without a backend) |
 | `Intercom.loginUnidentifiedUser()` | Not needed (Gleap uses guest sessions) |
 | `Intercom.logout()` | `Gleap.clearIdentity()` |
 | `Intercom.updateUser({ name, email, ... })` | `Gleap.updateContact({ name, email, ... })` |

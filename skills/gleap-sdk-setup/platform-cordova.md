@@ -24,12 +24,23 @@ The Cordova SDK exposes methods via `cordova.plugins.GleapPlugin`.
 
 ### Identify Users
 
+Decide signed vs. unsigned with the "User Identification" section of `SKILL.md` and say in the PR which one the app uses.
+
+**Signed (the app has a logged-in user and a backend):** the backend signs the identity token (HS256 with the project's identity key, `kid` header, claims `userId` + the contact's data, `exp` at most one hour ahead) and the app passes it after login and on app start. The Cordova plugin has no `setUserJwt`; the token goes where the legacy user hash goes, as the third argument of `identify`:
+
+```javascript
+// after login and on every app start while signed in; `token` comes from your backend
+cordova.plugins.GleapPlugin.identify("USER_ID", {}, token);
+```
+
+Everything Gleap should know about the contact (email, name, company, plan, `stripeCustomerId`, …) is a claim in the token; the client passes no other contact fields. Call `clearIdentity()` on logout.
+
+**Unsigned (no backend to change):** plain identify. Say so in the PR. Never put plan, billing, company or provider ids here; the project may mark such fields "Only signed updates", and then these writes are ignored.
+
 ```javascript
 cordova.plugins.GleapPlugin.identify("USER_ID", {
   name: "Franz",
   email: "franz@example.com",
-  plan: "Pro plan",
-  companyName: "ACME inc.",
   customData: {
     role: "admin",
   },
