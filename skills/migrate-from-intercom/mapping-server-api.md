@@ -4,6 +4,7 @@
 - [Remove Intercom SDKs](#remove-intercom-sdks)
 - [Authentication](#authentication)
 - [User/Contact Management](#usercontact-management)
+- [Identity Verification to Identity Token](#identity-verification-to-identity-token)
 - [Event Tracking](#event-tracking)
 - [Conversations and Tickets](#conversations-and-tickets)
 - [Node.js SDK](#nodejs-sdk)
@@ -100,6 +101,51 @@ curl -X POST https://api.gleap.io/v3/sessions \
 | `signed_up_at` | `createdAt` (ISO 8601) |
 | `custom_attributes` | `customData` |
 | `company.company_id` | `customData.companyId` |
+
+## Identity Verification to Identity Token
+
+Intercom's identity verification signs on the backend: an HMAC-SHA256 of `user_id` with the identity verification secret (`user_hash`), or a JWT with the same secret (`intercom_user_jwt`). Gleap does the same with an identity token: an HS256 JWT signed with one of the project's identity keys (Gleap dashboard > Settings > Security > Identity keys; the secret is shown once), key id in the `kid` header, `exp` at most one hour ahead. Keep the endpoint the app already calls for the Intercom value and make it return the Gleap token.
+
+| Intercom | Gleap |
+|----------|-------|
+| Identity verification secret | Identity key: id in `GLEAP_IDENTITY_KEY_ID`, secret in `GLEAP_IDENTITY_SECRET` (never in the client) |
+| `intercom_user_jwt` claims `user_id`, `email`, `name`, … | `userId` (required), `email`, `name`, `phone`, `company: { id, name }`, `plan`, provider ids (`stripeCustomerId`, …); every other top-level claim becomes a signed attribute |
+| `user_hash` = HMAC-SHA256(`user_id`, secret) | Legacy user hash = hex HMAC-SHA256(`userId`, the project's secret API key); accepted while "Accept legacy user hash" is on |
+
+**Before (Intercom, Node):**
+```javascript
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
+
+const userHash = crypto.createHmac("sha256", process.env.INTERCOM_IDENTITY_SECRET).update(user.id).digest("hex");
+// or
+const intercomUserJwt = jwt.sign({ user_id: user.id, email: user.email }, process.env.INTERCOM_IDENTITY_SECRET, { expiresIn: "1h" });
+```
+
+**After (Gleap, Node):**
+```javascript
+import jwt from "jsonwebtoken";
+
+const gleapToken = jwt.sign(
+  {
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    company: { id: user.companyId, name: user.companyName },
+    plan: user.plan,
+    stripeCustomerId: user.stripeCustomerId,
+  },
+  process.env.GLEAP_IDENTITY_SECRET,
+  { algorithm: "HS256", keyid: process.env.GLEAP_IDENTITY_KEY_ID, expiresIn: "1h" }
+);
+```
+
+Any JWT library works the same way (PyJWT, firebase/php-jwt, ruby-jwt, golang-jwt, System.IdentityModel.Tokens.Jwt): HS256, `kid` header, one-hour expiry. The client passes the token with `Gleap.setUserJwt(token)` (see the platform mapping files). Omit claims the app does not have; never invent values.
+
+**Legacy user hash (only when the app must stay on `identify(userId, data, userHash)`):**
+```javascript
+const userHash = crypto.createHmac("sha256", process.env.GLEAP_SECRET_API_TOKEN).update(user.id).digest("hex");
+```
 
 ## Event Tracking
 

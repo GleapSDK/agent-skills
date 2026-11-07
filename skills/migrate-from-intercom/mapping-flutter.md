@@ -81,27 +81,30 @@ Note: Intercom needs separate iOS/Android keys. Gleap uses a single API key.
 
 | Intercom | Gleap |
 |----------|-------|
-| `Intercom.instance.loginIdentifiedUser(userId:, email:)` | `Gleap.identify(userId:, userProperties: GleapUserProperty(...))` |
+| `Intercom.instance.setUserJwt(jwt)` | `Gleap.setUserJwt(token: token)` (the token re-signed by your backend with Gleap's identity key; after login and on app start, no other contact fields from the client) |
+| `Intercom.instance.loginIdentifiedUser(userId:, email:)` (unsigned) | `Gleap.identify(userId:, userProperties: GleapUserProperty(...))` (unsigned; only without a backend) |
 | `Intercom.instance.loginUnidentifiedUser()` | Not needed (Gleap uses guest sessions) |
 | `Intercom.instance.logout()` | `Gleap.clearIdentity()` |
 | `Intercom.instance.updateUser(...)` | `Gleap.updateContact(userProperties: GleapUserProperty(...))` |
-| `Intercom.instance.setUserHash(hash)` | Pass `userHash:` arg to `Gleap.identify()` |
+| `Intercom.instance.setUserHash(hash)` | Pass `userHash:` arg to `Gleap.identify()` (legacy user hash, works while "Accept legacy user hash" is on), or better `Gleap.setUserJwt(token:)` |
 
 **Before (Intercom):**
 ```dart
 await Intercom.instance.loginIdentifiedUser(userId: '123', email: 'user@example.com');
 ```
 
-**After (Gleap):**
+**After (Gleap, signed, the app has a backend):** the token carries `userId`, `email`, `name`, `plan`, `company`, `role`; the app passes only the token.
+```dart
+await Gleap.setUserJwt(token: token); // after login and on app start
+```
+
+**After (Gleap, unsigned, no backend):** only harmless data; plan and company stay out of an unsigned identify.
 ```dart
 Gleap.identify(
   userId: '123',
   userProperties: GleapUserProperty(
     email: 'user@example.com',
     name: 'John Doe',
-    plan: 'Pro',
-    companyId: 'c1',
-    companyName: 'ACME',
     customData: <String, dynamic>{'role': 'admin'},
   ),
 );

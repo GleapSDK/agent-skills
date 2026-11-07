@@ -74,7 +74,9 @@ Gleap.identifyContact("123", andData: props)
 | Intercom | Gleap |
 |----------|-------|
 | `Intercom.setApiKey(key, forAppId: id)` | `Gleap.initialize(withToken: key)` |
-| `Intercom.loginUser(with: attrs)` | `Gleap.identifyContact(userId, andData: props)` |
+| `Intercom.setUserJwt(jwt)` | `Gleap.setUserJwt(token)` (the token re-signed by your backend with Gleap's identity key; after login and on app start, no other contact fields from the client) |
+| `Intercom.setUserHash(hash)` + `loginUser` | `Gleap.identifyContact(userId, andData: props, andUserHash: hash)` (legacy user hash), or better `Gleap.setUserJwt(token)` |
+| `Intercom.loginUser(with: attrs)` (unsigned) | `Gleap.identifyContact(userId, andData: props)` (unsigned; only without a backend) |
 | `Intercom.loginUnidentifiedUser()` | Not needed (Gleap uses guest sessions by default) |
 | `Intercom.logout()` | `Gleap.clearIdentity()` |
 | `Intercom.updateUser(with: attrs)` | `Gleap.updateContact(props)` |
@@ -101,12 +103,16 @@ attrs.customAttributes = ["plan": "Pro", "role": "admin"]
 Intercom.loginUser(with: attrs)
 ```
 
-**After (Gleap):**
+**After (Gleap, signed, the app has a backend):** the backend puts these facts into the identity token (`userId`, `email`, `name`, `plan`, `role`), the app passes only the token.
+```swift
+Gleap.setUserJwt(token) // after login and on app start
+```
+
+**After (Gleap, unsigned, no backend):** only harmless data; the plan stays out of an unsigned identify.
 ```swift
 let props = GleapUserProperty()
 props.email = "user@example.com"
 props.name = "Franz"
-props.plan = "Pro"
 props.customData = ["role": "admin"]
 Gleap.identifyContact("123", andData: props)
 ```

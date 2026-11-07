@@ -50,3 +50,5 @@ Deploy your app. Gleap will be active on iOS, Android, and Web.
 ## Additional API Usage
 
 For advanced features (identify users, track events, custom data), create additional Custom Actions using the Flutter Gleap SDK methods. See `platform-flutter.md` for the full Dart API reference.
+
+To identify logged-in users, create a Custom Action that calls `Gleap.setUserJwt(token: token)` with an identity token your backend signs (see "User Identification" in `SKILL.md`); run it after login and on app start. Plain `Gleap.identify` without a token only when the app has no backend.

@@ -90,14 +90,80 @@ Follow these steps in order:
 5. **Read platform guide**: Read the matching `platform-{name}.md` file from this skill's directory.
 6. **Install SDK**: Walk the user through installing the dependency using the latest version from step 1. Run install commands when the user approves. Verify installation succeeded.
 7. **Initialize SDK**: Add initialization code using the resolved API key.
-8. **Configure platform**: Apply required permissions, manifest entries, or additional config from the platform guide.
-9. **Verify**: Suggest building/running the project to confirm integration works.
+8. **Identify users**: If the app has a logged-in user, wire the signed identity token (see "User Identification" below) with the platform's `setUserJwt` call from the platform guide. Plain unsigned `identify` only when there is no backend.
+9. **Configure platform**: Apply required permissions, manifest entries, or additional config from the platform guide.
+10. **Verify**: Suggest building/running the project to confirm integration works.
+11. **Describe the PR**: State whether identify is signed (identity token, legacy user hash or unsigned, and why) and which environment variables the backend needs.
+
+## User Identification
+
+Decide this once, before writing an identify call, and state the result in the PR description.
+
+### The app has a logged-in user (the normal case): signed identity token
+
+Gleap trusts what the backend signs and nothing the browser or app says about itself. The flow:
+
+1. **The backend signs an identity token**: an HS256 JWT signed with one of the project's identity keys (Gleap dashboard > Settings > Security > Identity keys; the secret is shown once). Put the key id in the `kid` header and the secret in an environment variable. The secret never reaches the client.
+   - Claims: `userId` (required, the same id the app uses for the user), optional `email`, `name`, `phone`, `company` (`{ "id": "...", "name": "..." }`), `plan`, provider ids such as `stripeCustomerId`, `chargebeeCustomerId`, `paddleCustomerId`, `lemonsqueezyCustomerId`, `revenuecatAppUserId`, `shopifyCustomerId`, `woocommerceCustomerId`. Every further top-level claim (string, number or boolean) becomes a signed attribute on the contact.
+   - `exp`: required for new integrations, at most one hour ahead. Omit claims the app does not have; never invent values.
+2. **Expose it on an authenticated endpoint** of the app's backend (for example `GET /api/gleap-token`) that returns the token for the signed-in user.
+3. **The app calls `setUserJwt(token)`** after login and on every app start while a user is signed in, and `clearIdentity()` on logout. Everything Gleap should know about the contact is a claim in the token; the client passes no other contact fields.
+4. **Token refresh (optional)**: register `setUserJwtProvider` with a function that fetches a fresh token; the SDK calls it when a token has expired.
+
+| Platform | Call |
+|----------|------|
+| JavaScript | `Gleap.setUserJwt(token)` |
+| iOS | `Gleap.setUserJwt(token)` |
+| Android | `Gleap.getInstance().setUserJwt(token)` |
+| React Native | `Gleap.setUserJwt(token)` |
+| Flutter | `Gleap.setUserJwt(token: token)` |
+| Ionic/Capacitor | `Gleap.setUserJwt({ token })` |
+| Cordova | No `setUserJwt`; pass the token as the third argument of `identify(userId, data, token)` |
+| FlutterFlow | A Custom Action that calls the Flutter method |
+
+**Installed SDK without `setUserJwt`** (older version, Cordova): pass the token where the legacy user hash goes, as the third argument of `identify(userId, data, token)` (per-platform shape in the platform guide). Suggest updating the SDK in the PR so `setUserJwt` can be used. An SDK without `setUserJwt` sends no session grant, so on a project in Signed mode Kai treats those users as unverified until the app is upgraded.
+
+Backend example (Node, `npm install jsonwebtoken`; any JWT library in any language works the same way: HS256, `kid` header, one-hour expiry):
+
+```javascript
+import jwt from "jsonwebtoken";
+
+export function gleapIdentityToken(user) {
+  return jwt.sign(
+    {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      company: { id: user.companyId, name: user.companyName },
+      plan: user.plan,
+      stripeCustomerId: user.stripeCustomerId,
+    },
+    process.env.GLEAP_IDENTITY_SECRET,
+    { algorithm: "HS256", keyid: process.env.GLEAP_IDENTITY_KEY_ID, expiresIn: "1h" }
+  );
+}
+```
+
+Environment variables the backend needs: `GLEAP_IDENTITY_KEY_ID` (the key id, shown in the dashboard) and `GLEAP_IDENTITY_SECRET` (the secret, shown once on creation). Add them to `.env.example` with empty values, never commit real values.
+
+### No backend to change: plain unsigned identify
+
+Only when the app has no backend (static site, prototype, a client-only app): call `identify(userId, data)` without a token. Say so in the PR: the identity is unverified, Kai shows no billing or account data to such contacts, and fields the project marks "Only signed updates" (Settings > Inbox & tickets > Data attributes, Contact tab) ignore these writes. Never put plan, billing, company or provider ids in an unsigned identify; they belong in the token.
+
+### Legacy user hash
+
+Existing integrations may pass a hex HMAC-SHA256 of the user id, computed server-side with the project's secret API key, as the user hash (third argument of `identify`). It keeps working while the project's "Accept legacy user hash" switch is on. New integrations use the identity token; when migrating, replace the hash endpoint with the token endpoint and the `identify(..., hash)` call with `setUserJwt(token)`.
+
+### What the PR description must say
+
+- Whether identify is **signed with the identity token**, **signed with the legacy user hash**, or **unsigned**, and why.
+- Which **environment variables** the backend needs (for the token: `GLEAP_IDENTITY_KEY_ID`, `GLEAP_IDENTITY_SECRET`).
 
 ## Post-Setup API Guidance
 
 After setup, if the user asks about using the Gleap API, refer to the "Common API Usage" section in the relevant platform file. The most common tasks are:
 
-- **Identify users**: Associate sessions with user data (name, email, plan, custom data)
+- **Identify users**: Signed identity token via `setUserJwt` when the app has a logged-in user (see "User Identification"); plain `identify` only without a backend
 - **Track events**: Log custom events at key points in the app
 - **Custom data**: Attach contextual data to feedback tickets
 - **Widget control**: Programmatically open/close the Gleap widget
@@ -109,8 +175,8 @@ Re-read the platform file's API section for the correct method signatures, as th
 - `initialize()` must be called exactly once in the application lifecycle
 - For cross-platform frameworks (React Native, Flutter, Ionic/Capacitor), both iOS and Android platform-specific configuration (permissions) is needed
 - The JavaScript CDN approach works for any web context and does not require npm
-- For identity verification, the user hash must be generated server-side using the project's secret key
-- Custom data supports only primitive values (strings, numbers, booleans) with a max of 35 keys
+- User identification: the identity token is signed on the backend with the project's identity key and passed with `setUserJwt`; the legacy user hash (HMAC of the user id with the project's secret API key) is also computed server-side and keeps working while "Accept legacy user hash" is on. Never sign or hash on the client
+- Custom data supports only primitive values (strings, numbers, booleans) with a max of 35 keys; attributes that gate data or billing (plan, provider customer ids, company) go into the identity token's claims, not into unsigned custom data
 
 ## Common Troubleshooting
 

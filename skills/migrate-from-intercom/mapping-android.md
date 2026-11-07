@@ -57,7 +57,10 @@ import io.gleap.Gleap;
 // MainActivity onCreate
 Gleap.initialize("GLEAP_API_KEY", this);
 
-// After login
+// After login and on app start, signed (the app has a backend): the token carries userId, email, …
+Gleap.getInstance().setUserJwt(token);
+
+// Unsigned, only without a backend
 GleapSessionProperties props = new GleapSessionProperties();
 props.setEmail("user@example.com");
 Gleap.getInstance().identifyContact("123", props);
@@ -68,7 +71,9 @@ Gleap.getInstance().identifyContact("123", props);
 | Intercom | Gleap |
 |----------|-------|
 | `Intercom.initialize(ctx, key, appId)` | `Gleap.initialize(key, activity)` |
-| `Intercom.client().loginIdentifiedUser(reg)` | `Gleap.getInstance().identifyContact(userId, props)` |
+| `Intercom.client().setUserJwt(jwt)` | `Gleap.getInstance().setUserJwt(token)` (the token re-signed by your backend with Gleap's identity key; after login and on app start, no other contact fields from the client) |
+| `Intercom.client().setUserHash(hash)` + `loginIdentifiedUser` | `props.setHash(hash)` then `identifyContact(userId, props)` (legacy user hash), or better `setUserJwt(token)` |
+| `Intercom.client().loginIdentifiedUser(reg)` (unsigned) | `Gleap.getInstance().identifyContact(userId, props)` (unsigned; only without a backend) |
 | `Intercom.client().loginUnidentifiedUser()` | Not needed (Gleap uses guest sessions) |
 | `Intercom.client().logout()` | `Gleap.getInstance().clearIdentity()` |
 | `Intercom.client().updateUser(attrs)` | `Gleap.getInstance().updateContact(props)` |
