@@ -49,8 +49,10 @@ In `index.js` (call only once):
 ```javascript
 import Gleap from 'react-native-gleapsdk';
 
-Gleap.initialize("API_KEY");
+Gleap.initialize("PROJECT_ID");
 ```
+
+Replace `PROJECT_ID` with the Project ID.
 
 ## Required Permissions
 
@@ -116,7 +118,7 @@ Gleap.identify("USER_ID", {
 });
 ```
 
-Legacy user hash (existing integrations; a server-side HMAC-SHA256 of the user id with the project's secret API key, accepted while "Accept legacy user hash" is on):
+Legacy user hash (existing integrations; a server-side HMAC-SHA256 of the user id with the project secret, accepted on existing projects while "Accept legacy user hash" is on; projects created in Signed mode don't accept it):
 ```javascript
 Gleap.identifyWithUserHash("USER_ID", { name: "Franz", email: "franz@example.com" }, "GENERATED_USER_HASH");
 ```

@@ -67,7 +67,7 @@ Intercom.loginUserWithUserAttributes({ email: "user@example.com", userId: "123" 
 // index.js (JavaScript only, no native init needed)
 import Gleap from 'react-native-gleapsdk';
 
-Gleap.initialize("GLEAP_API_KEY");
+Gleap.initialize("GLEAP_PROJECT_ID");
 
 // After login and on app start, signed (the app has a backend): the token carries userId, email, name, …
 await Gleap.setUserJwt(token);

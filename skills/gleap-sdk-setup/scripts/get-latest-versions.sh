@@ -23,7 +23,8 @@ CAP_VERSION=$(curl -sf https://registry.npmjs.org/capacitor-gleap-plugin/latest 
 echo "Ionic/Capacitor (npm: capacitor-gleap-plugin): ${CAP_VERSION:-unknown}"
 
 # Android (Maven Central)
-ANDROID_VERSION=$(curl -sf "https://search.maven.org/solrsearch/select?q=g:io.gleap+AND+a:gleap-android-sdk&rows=1&wt=json" | json_val latestVersion)
+# maven-metadata.xml on Maven Central itself: the search.maven.org index lags behind and reported a 14.x release.
+ANDROID_VERSION=$(curl -sf https://repo1.maven.org/maven2/io/gleap/gleap-android-sdk/maven-metadata.xml | grep -o '<release>[^<]*' | head -1 | sed 's/<release>//')
 echo "Android (Maven: io.gleap:gleap-android-sdk): ${ANDROID_VERSION:-unknown}"
 
 # iOS (GitHub tags for SPM / CocoaPods)

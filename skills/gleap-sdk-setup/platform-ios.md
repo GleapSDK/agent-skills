@@ -62,12 +62,12 @@ Add to `applicationDidFinishLaunchingWithOptions`:
 
 **Swift:**
 ```swift
-Gleap.initialize(withToken: "API_KEY")
+Gleap.initialize(withProjectId: "PROJECT_ID")
 ```
 
 **Objective-C:**
 ```objectivec
-[Gleap initializeWithToken: @"API_KEY"];
+[Gleap initializeWithProjectId: @"PROJECT_ID"];
 ```
 
 ### SwiftUI
@@ -76,9 +76,11 @@ Add to the `App` struct's `init()`:
 
 ```swift
 init() {
-    Gleap.initialize(withToken: "API_KEY")
+    Gleap.initialize(withProjectId: "PROJECT_ID")
 }
 ```
+
+Replace `PROJECT_ID` with the Project ID (`withProjectId:` needs SDK 19.5.0 or newer; older versions take the same value as `withToken:`).
 
 ## Required Permissions
 

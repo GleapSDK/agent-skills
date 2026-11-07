@@ -68,16 +68,18 @@ Use `Glob` to scan for key files:
 
 If `package.json` is found, use `Read` to inspect its `dependencies` and `devDependencies` keys.
 
-## API Key Resolution
+## Project ID Resolution
 
-Before asking the user for their API key, check these locations in order:
+Every SDK is initialized with the project's **Project ID** (formerly called "SDK key" or "API key"; the value is the same). It identifies the project, not a user: it is public, safe to commit and not a secret. Before asking the user for it, check these locations in order:
 
-1. **User provided it in the conversation** (e.g., "add Gleap with token abc123") — use it directly
-2. **`.env` file** in the project root — look for `GLEAP_API_KEY=...`
-3. **Environment variable** — check if `GLEAP_API_KEY` is set via `echo $GLEAP_API_KEY`
-4. **Not found** — ask the user to provide their API key (available at https://app.gleap.io under Project Settings > Security > API Key)
+1. **User provided it in the conversation** (e.g., "add Gleap with project ID abc123") — use it directly
+2. **`.env` file** in the project root — look for `GLEAP_PROJECT_ID=...` (older setups may have it as `GLEAP_API_KEY=...`; same value)
+3. **Environment variable** — check `GLEAP_PROJECT_ID` (or the older `GLEAP_API_KEY`) via `echo $GLEAP_PROJECT_ID`
+4. **Not found** — ask the user for their Project ID (Gleap dashboard at https://app.gleap.ai, under **Settings → Project → General**, or on **Settings → Widget → Install**)
 
-When a key is found or provided, offer to save it to the project's `.env` file (creating it if needed, and adding `.env` to `.gitignore` if not already there) so it's available for future use.
+When it is found or provided, you may offer to save it to the project's `.env` file as `GLEAP_PROJECT_ID` for future use. It is not a secret, so it can also go straight into the initialization code.
+
+Do not confuse it with a server **API key** (Settings → Developer → API keys): that one is secret, belongs only on a backend, and is never needed to install the SDK.
 
 ## Workflow
 
@@ -85,15 +87,15 @@ Follow these steps in order:
 
 1. **Fetch latest SDK versions**: Run `scripts/get-latest-versions.sh` from this skill's directory. Use the returned versions in all install commands instead of hardcoded version numbers.
 2. **Detect platform** using the priority rules above.
-3. **Resolve API key** using the API Key Resolution steps above.
+3. **Resolve the Project ID** using the Project ID Resolution steps above.
 4. **Confirm with user**: State the detected platform and ask for confirmation. If the user already specified a platform, skip this step.
 5. **Read platform guide**: Read the matching `platform-{name}.md` file from this skill's directory.
 6. **Install SDK**: Walk the user through installing the dependency using the latest version from step 1. Run install commands when the user approves. Verify installation succeeded.
-7. **Initialize SDK**: Add initialization code using the resolved API key.
+7. **Initialize SDK**: Add initialization code using the resolved Project ID (SDK 19.5.0 or newer, JavaScript 19.6.0: `projectId` / `withProjectId:`; older SDK versions take the same value under its old name, such as `token:`, `withToken:` or `{ API_KEY }`).
 8. **Identify users**: If the app has a logged-in user, wire the signed identity token (see "User Identification" below) with the platform's `setUserJwt` call from the platform guide. Plain unsigned `identify` only when there is no backend.
 9. **Configure platform**: Apply required permissions, manifest entries, or additional config from the platform guide.
 10. **Verify**: Suggest building/running the project to confirm integration works.
-11. **Describe the PR**: State whether identify is signed (identity token, legacy user hash or unsigned, and why) and which environment variables the backend needs.
+11. **Describe the PR**: State whether identify is signed (identity token, legacy user hash or unsigned, and why), which environment variables the backend needs, and the required action in Gleap (see "What the PR description must say").
 
 ## User Identification
 
@@ -103,12 +105,14 @@ Decide this once, before writing an identify call, and state the result in the P
 
 Gleap trusts what the backend signs and nothing the browser or app says about itself. The flow:
 
-1. **The backend signs an identity token**: an HS256 JWT signed with one of the project's identity keys (Gleap dashboard > Settings > Security > Identity keys; the secret is shown once). Put the key id in the `kid` header and the secret in an environment variable. The secret never reaches the client.
+1. **The backend signs an identity token**: an HS256 JWT signed with one of the project's identity keys (Gleap dashboard > **Settings → Security → Customer identity**, step **Create an identity key**; the secret is shown once). Put the key id in the `kid` header and the secret in an environment variable. The secret never reaches the client.
    - Claims: `userId` (required, the same id the app uses for the user), optional `email`, `name`, `phone`, `company` (`{ "id": "...", "name": "..." }`), `plan`, provider ids such as `stripeCustomerId`, `chargebeeCustomerId`, `paddleCustomerId`, `lemonsqueezyCustomerId`, `revenuecatAppUserId`, `shopifyCustomerId`, `woocommerceCustomerId`. Every further top-level claim (string, number or boolean) becomes a signed attribute on the contact.
    - `exp`: required for new integrations, at most one hour ahead. Omit claims the app does not have; never invent values.
 2. **Expose it on an authenticated endpoint** of the app's backend (for example `GET /api/gleap-token`) that returns the token for the signed-in user.
 3. **The app calls `setUserJwt(token)`** after login and on every app start while a user is signed in, and `clearIdentity()` on logout. Everything Gleap should know about the contact is a claim in the token; the client passes no other contact fields.
-4. **Token refresh (optional)**: register `setUserJwtProvider` with a function that fetches a fresh token; the SDK calls it when a token has expired.
+4. **Token refresh (optional)**: register `setUserJwtProvider` with a function that fetches a fresh token; the SDK calls it when a token has expired. Every SDK that has `setUserJwt` has it; it never replaces the `setUserJwt` call.
+
+**What the project's mode means.** Creating an identity key protects nothing and doesn't switch the project. New projects start in **Signed** mode and accept identity tokens only (no user hash). Existing (**Classic**) projects keep working exactly as before until someone checks a token on the same page (**Check a token from your backend**) and clicks **Turn on signed sessions**. Guide: https://docs.gleap.ai/en/articles/709-customer-identity; moving an existing user-hash integration: https://docs.gleap.ai/en/articles/16752008-upgrade-to-identity-tokens
 
 | Platform | Call |
 |----------|------|
@@ -152,12 +156,14 @@ Only when the app has no backend (static site, prototype, a client-only app): ca
 
 ### Legacy user hash
 
-Existing integrations may pass a hex HMAC-SHA256 of the user id, computed server-side with the project's secret API key, as the user hash (third argument of `identify`). It keeps working while the project's "Accept legacy user hash" switch is on. New integrations use the identity token; when migrating, replace the hash endpoint with the token endpoint and the `identify(..., hash)` call with `setUserJwt(token)`.
+Existing integrations may pass a hex HMAC-SHA256 of the user id, computed server-side with the project secret, as the user hash (third argument of `identify`). It keeps working on existing projects while their "Accept legacy user hash" switch is on; projects created in Signed mode don't accept it. New integrations use the identity token; when migrating, replace the hash endpoint with the token endpoint and the `identify(..., hash)` call with `setUserJwt(token)`.
 
 ### What the PR description must say
 
 - Whether identify is **signed with the identity token**, **signed with the legacy user hash**, or **unsigned**, and why.
 - Which **environment variables** the backend needs (for the token: `GLEAP_IDENTITY_KEY_ID`, `GLEAP_IDENTITY_SECRET`).
+- For the token, a **required action** for the maintainer: in Gleap under Settings → Security → Customer identity, create an identity key, set both environment variables on the backend, check a token with **Check a token from your backend**, and click **Turn on signed sessions** if the page still offers it (until the variables are set, the endpoint returns no token and login keeps working).
+- That the Project ID in the code is public and safe to commit.
 
 ## Post-Setup API Guidance
 
@@ -175,7 +181,7 @@ Re-read the platform file's API section for the correct method signatures, as th
 - `initialize()` must be called exactly once in the application lifecycle
 - For cross-platform frameworks (React Native, Flutter, Ionic/Capacitor), both iOS and Android platform-specific configuration (permissions) is needed
 - The JavaScript CDN approach works for any web context and does not require npm
-- User identification: the identity token is signed on the backend with the project's identity key and passed with `setUserJwt`; the legacy user hash (HMAC of the user id with the project's secret API key) is also computed server-side and keeps working while "Accept legacy user hash" is on. Never sign or hash on the client
+- User identification: the identity token is signed on the backend with the project's identity key and passed with `setUserJwt`; the legacy user hash (HMAC of the user id with the project secret) is also computed server-side and keeps working on existing projects while "Accept legacy user hash" is on. Never sign or hash on the client
 - Custom data supports only primitive values (strings, numbers, booleans) with a max of 35 keys; attributes that gate data or billing (plan, provider customer ids, company) go into the identity token's claims, not into unsigned custom data
 
 ## Common Troubleshooting

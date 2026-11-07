@@ -40,7 +40,7 @@ Run `pod install`.
 
 ## Initialization
 
-Intercom uses `setApiKey` + `loginUser` as separate steps. Gleap uses `initialize` + `identifyContact`.
+Intercom uses `setApiKey` + `loginUser` as separate steps. Gleap uses `initialize` + `setUserJwt` (signed), or `identifyContact` only without a backend.
 
 **Before (Intercom):**
 ```swift
@@ -61,9 +61,12 @@ Intercom.loginUser(with: attrs) { }
 import Gleap
 
 // AppDelegate
-Gleap.initialize(withToken: "GLEAP_API_KEY")
+Gleap.initialize(withProjectId: "GLEAP_PROJECT_ID")
 
-// After login
+// After login and on app start, signed (the app has a backend): the token carries userId, email, …
+Gleap.setUserJwt(token)
+
+// Only without a backend: unsigned identify
 let props = GleapUserProperty()
 props.email = "user@example.com"
 Gleap.identifyContact("123", andData: props)
@@ -73,7 +76,7 @@ Gleap.identifyContact("123", andData: props)
 
 | Intercom | Gleap |
 |----------|-------|
-| `Intercom.setApiKey(key, forAppId: id)` | `Gleap.initialize(withToken: key)` |
+| `Intercom.setApiKey(key, forAppId: id)` | `Gleap.initialize(withProjectId: projectId)` (SDK 19.5.0+; older versions: `withToken:`, same value) |
 | `Intercom.setUserJwt(jwt)` | `Gleap.setUserJwt(token)` (the token re-signed by your backend with Gleap's identity key; after login and on app start, no other contact fields from the client) |
 | `Intercom.setUserHash(hash)` + `loginUser` | `Gleap.identifyContact(userId, andData: props, andUserHash: hash)` (legacy user hash), or better `Gleap.setUserJwt(token)` |
 | `Intercom.loginUser(with: attrs)` (unsigned) | `Gleap.identifyContact(userId, andData: props)` (unsigned; only without a backend) |

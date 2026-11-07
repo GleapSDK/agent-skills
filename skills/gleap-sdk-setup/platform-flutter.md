@@ -67,10 +67,12 @@ import 'package:gleap_sdk/gleap_sdk.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  Gleap.initialize(token: 'API_KEY');
+  Gleap.initialize(projectId: 'PROJECT_ID');
   runApp(MyApp());
 }
 ```
+
+Replace `PROJECT_ID` with the Project ID (`projectId:` needs gleap_sdk 19.5.0 or newer; older versions take the same value as `token:`).
 
 ## Required Permissions
 
@@ -138,7 +140,7 @@ Gleap.identify(
 );
 ```
 
-Legacy user hash (existing integrations; a server-side HMAC-SHA256 of the user id with the project's secret API key, accepted while "Accept legacy user hash" is on):
+Legacy user hash (existing integrations; a server-side HMAC-SHA256 of the user id with the project secret, accepted on existing projects while "Accept legacy user hash" is on; projects created in Signed mode don't accept it):
 ```dart
 Gleap.identify(
   userId: 'USER_ID',

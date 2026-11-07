@@ -38,7 +38,7 @@ Or use CDN (add to `<head>`):
 ```html
 <script>
 !function(){if(!(window.Gleap=window.Gleap||[]).invoked){window.GleapActions=[];const e=new Proxy({invoked:!0},{get:function(e,n){return"invoked"===n?e.invoked:function(){const e=Array.prototype.slice.call(arguments);window.GleapActions.push({e:n,a:e})}},set:function(e,n,t){return e[n]=t,!0}});window.Gleap=e;const n=document.getElementsByTagName("head")[0],t=document.createElement("script");t.type="text/javascript",t.async=!0,t.src="https://sdk.gleap.io/latest/index.js",n.appendChild(t),
-    window.Gleap.initialize("YOUR_GLEAP_API_KEY")
+    window.Gleap.initialize("YOUR_GLEAP_PROJECT_ID")
 }}();
 </script>
 ```
@@ -63,7 +63,7 @@ Intercom('boot', {
 import Gleap from "gleap";
 
 // Step 1: Initialize (once, on app load)
-Gleap.initialize("YOUR_GLEAP_API_KEY");
+Gleap.initialize("YOUR_GLEAP_PROJECT_ID");
 
 // Step 2: Identify user (on login/signup)
 Gleap.identify("12345", {
@@ -95,7 +95,7 @@ Gleap.identify("12345", {
 | `phone` | `phone` |
 | `created_at` (unix timestamp) | `createdAt` (Date object) |
 | `intercom_user_jwt` | `Gleap.setUserJwt(token)`; claims map `user_id` → `userId`, `email`/`name`/`phone` unchanged, `company` → `company: { id, name }`, every other claim → a signed attribute |
-| `user_hash` | Third argument to `identify()` (legacy user hash, HMAC-SHA256 of the user id with Gleap's secret API key; works while "Accept legacy user hash" is on) |
+| `user_hash` | Third argument to `identify()` (legacy user hash, HMAC-SHA256 of the user id with the Gleap project secret; works on existing projects while "Accept legacy user hash" is on, never on projects created in Signed mode) |
 | `company.company_id` | `companyId` |
 | `company.name` | `companyName` |
 | `company.plan` | `plan` |

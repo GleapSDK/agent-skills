@@ -41,8 +41,10 @@ In your `index.js`, `index.tsx`, or main component (call only once):
 ```typescript
 import { Gleap } from 'capacitor-gleap-plugin';
 
-Gleap.initialize({ token: "API_KEY" });
+Gleap.initialize({ projectId: "PROJECT_ID" });
 ```
+
+Replace `PROJECT_ID` with the Project ID (`projectId` needs capacitor-gleap-plugin 19.5.0 or newer; older versions take the same value as `{ API_KEY: "…" }`).
 
 ## Required Permissions
 

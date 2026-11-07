@@ -38,7 +38,7 @@ Sync Gradle. Use `get-latest-versions.sh` from the `gleap-sdk-setup` skill for t
 
 ## Initialization
 
-Intercom initializes in Application class, then logs in separately. Gleap initializes in Activity.
+Both initialize in the Application class, then sign the user in separately. `Gleap.initialize` takes the `Application`, so it replaces the Intercom call in the same `onCreate`.
 
 **Before (Intercom):**
 ```kotlin
@@ -54,8 +54,8 @@ Intercom.client().loginIdentifiedUser(userRegistration = reg)
 ```java
 import io.gleap.Gleap;
 
-// MainActivity onCreate
-Gleap.initialize("GLEAP_API_KEY", this);
+// Application class onCreate (the same place Intercom initialized)
+Gleap.initialize("GLEAP_PROJECT_ID", this);
 
 // After login and on app start, signed (the app has a backend): the token carries userId, email, …
 Gleap.getInstance().setUserJwt(token);
@@ -70,7 +70,7 @@ Gleap.getInstance().identifyContact("123", props);
 
 | Intercom | Gleap |
 |----------|-------|
-| `Intercom.initialize(ctx, key, appId)` | `Gleap.initialize(key, activity)` |
+| `Intercom.initialize(ctx, key, appId)` | `Gleap.initialize(projectId, application)` |
 | `Intercom.client().setUserJwt(jwt)` | `Gleap.getInstance().setUserJwt(token)` (the token re-signed by your backend with Gleap's identity key; after login and on app start, no other contact fields from the client) |
 | `Intercom.client().setUserHash(hash)` + `loginIdentifiedUser` | `props.setHash(hash)` then `identifyContact(userId, props)` (legacy user hash), or better `setUserJwt(token)` |
 | `Intercom.client().loginIdentifiedUser(reg)` (unsigned) | `Gleap.getInstance().identifyContact(userId, props)` (unsigned; only without a backend) |

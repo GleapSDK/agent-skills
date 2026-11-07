@@ -21,12 +21,12 @@ Add to `<head>`:
 ```html
 <script>
 !function(){if(!(window.Gleap=window.Gleap||[]).invoked){window.GleapActions=[];const e=new Proxy({invoked:!0},{get:function(e,n){return"invoked"===n?e.invoked:function(){const e=Array.prototype.slice.call(arguments);window.GleapActions.push({e:n,a:e})}},set:function(e,n,t){return e[n]=t,!0}});window.Gleap=e;const n=document.getElementsByTagName("head")[0],t=document.createElement("script");t.type="text/javascript",t.async=!0,t.src="https://sdk.gleap.io/latest/index.js",n.appendChild(t),
-    window.Gleap.initialize("API_KEY")
+    window.Gleap.initialize("PROJECT_ID")
 }}();
 </script>
 ```
 
-Replace `API_KEY` with the actual key. This loads Gleap asynchronously and initializes it. No further init call needed.
+Replace `PROJECT_ID` with the Project ID (public, safe to commit). This loads Gleap asynchronously and initializes it. No further init call needed.
 
 ## Initialization
 
@@ -35,7 +35,8 @@ For npm installs, import and initialize once:
 ```javascript
 import Gleap from "gleap";
 
-Gleap.initialize("API_KEY");
+Gleap.initialize("PROJECT_ID");
+// or, with gleap 19.6.0 or newer: Gleap.initialize({ projectId: "PROJECT_ID" });
 ```
 
 Call `initialize` only once. For CDN installs, initialization is included in the snippet above.

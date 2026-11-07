@@ -20,17 +20,33 @@ Sync Gradle after adding the dependency.
 
 ## Initialization
 
-In your main Activity's `onCreate`:
+`Gleap.initialize` takes your `Application`, so call it in your Application class's `onCreate` (register the class with `android:name` on `<application>` in `AndroidManifest.xml` if the app has none yet), not in an Activity:
 
 ```java
+import android.app.Application;
 import io.gleap.Gleap;
 
-@Override
-protected void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    Gleap.initialize("API_KEY", this);
+public class MyApplication extends Application {
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        Gleap.initialize("PROJECT_ID", this);
+    }
 }
 ```
+
+Kotlin:
+
+```kotlin
+class MyApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        Gleap.initialize("PROJECT_ID", this)
+    }
+}
+```
+
+Replace `PROJECT_ID` with the Project ID.
 
 ## Required Permissions
 

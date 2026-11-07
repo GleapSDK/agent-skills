@@ -29,31 +29,31 @@ Search the codebase for Intercom integration. Use `Grep` to find:
 
 Report all findings to the user before proceeding.
 
-## API Key Resolution
+## Project ID Resolution
 
-Before asking the user for their Gleap API key, check these locations in order:
+The Gleap SDKs are initialized with the project's **Project ID** (formerly called "SDK key" or "API key"; same value). It is public, safe to commit and not a secret. Before asking the user for it, check these locations in order:
 
 1. **User provided it in the conversation** — use it directly
-2. **`.env` file** in the project root — look for `GLEAP_API_KEY=...`
-3. **Environment variable** — check if `GLEAP_API_KEY` is set via `echo $GLEAP_API_KEY`
-4. **Not found** — ask the user (available at https://app.gleap.io > Project Settings > Security > API Key)
+2. **`.env` file** in the project root — look for `GLEAP_PROJECT_ID=...` (older setups: `GLEAP_API_KEY=...`, same value)
+3. **Environment variable** — check `GLEAP_PROJECT_ID` (or the older `GLEAP_API_KEY`) via `echo $GLEAP_PROJECT_ID`
+4. **Not found** — ask the user (Gleap dashboard at https://app.gleap.ai > **Settings → Project → General**, or **Settings → Widget → Install**)
 
-When a key is found or provided, offer to save it to `.env` (and add `.env` to `.gitignore` if needed).
+When it is found or provided, you may offer to save it to `.env` as `GLEAP_PROJECT_ID`. Server-side code needs a different, secret credential: an API key from **Settings → Developer → API keys** (see `mapping-server-api.md`).
 
 ## Workflow
 
 1. **Detect Intercom** using the patterns above. Report which platforms and files are affected.
 2. **Confirm scope** with the user: which parts to migrate (client SDK, server API, or both).
-3. **Resolve Gleap API key** using the API Key Resolution steps above.
+3. **Resolve the Gleap Project ID** using the Project ID Resolution steps above.
 4. **Read the mapping file** for the detected platform from this skill's directory.
 5. **Remove Intercom SDK**: Uninstall packages, remove script tags, delete imports and configuration.
 6. **Install Gleap SDK**: Follow the installation steps from the mapping file (or reference the `gleap-sdk-setup` skill if installed).
-7. **Replace API calls**: Use the mapping tables to convert every Intercom call to its Gleap equivalent. Use the resolved API key in initialization code.
+7. **Replace API calls**: Use the mapping tables to convert every Intercom call to its Gleap equivalent. Use the resolved Project ID in initialization code.
    - **User identity**: Intercom's `intercom_user_jwt` / `setUserJwt` becomes Gleap's identity token and `setUserJwt`; Intercom's identity verification `user_hash` becomes Gleap's legacy user hash. See "User Identity" below and re-sign on the backend with Gleap's identity key.
 8. **Migrate server-side code** if applicable: Replace Intercom REST API calls with Gleap REST API calls. See `mapping-server-api.md`.
 9. **Clean up**: Remove Intercom-specific config (API keys, app IDs, `intercomSettings`, push notification handlers).
 10. **Verify**: Build and run the project. Search for any remaining `intercom` references.
-11. **Describe the PR**: State whether identify is signed (identity token, legacy user hash or unsigned, and why) and which environment variables the backend needs.
+11. **Describe the PR**: State whether identify is signed (identity token, legacy user hash or unsigned, and why), which environment variables the backend needs, and the required action in Gleap (see the end of "User Identity").
 
 ## User Identity
 
@@ -61,18 +61,20 @@ Intercom and Gleap prove a logged-in user the same way: the backend signs someth
 
 | Intercom | Gleap |
 |----------|-------|
-| `intercom_user_jwt` (JWT signed with Intercom's identity verification secret) | Identity token: an HS256 JWT signed with one of the project's identity keys (Gleap dashboard > Settings > Security > Identity keys), key id in the `kid` header, `exp` at most one hour ahead |
+| `intercom_user_jwt` (JWT signed with Intercom's identity verification secret) | Identity token: an HS256 JWT signed with one of the project's identity keys (Gleap dashboard > **Settings → Security → Customer identity**, **Create an identity key**; the secret is shown once), key id in the `kid` header, `exp` at most one hour ahead |
 | `user_id` claim | `userId` claim (required) |
 | `email`, `name`, `phone` claims | `email`, `name`, `phone` claims |
 | Extra claims (`plan`, `company`, provider ids …) | Extra top-level claims become signed attributes on the contact; `company` is `{ "id": "...", "name": "..." }`, provider ids are `stripeCustomerId`, `chargebeeCustomerId`, `paddleCustomerId`, `lemonsqueezyCustomerId`, `revenuecatAppUserId`, `shopifyCustomerId`, `woocommerceCustomerId` |
 | `Intercom.setUserJwt(jwt)` / `Intercom('boot', { intercom_user_jwt })` | `Gleap.setUserJwt(token)` after login and on app start (per-platform names in the mapping files); `clearIdentity()` on logout |
-| `user_hash` (identity verification, HMAC-SHA256 of `user_id` with Intercom's secret) | Legacy user hash: hex HMAC-SHA256 of the user id with the project's secret API key, passed where the SDK takes the user hash (third argument of `identify`). Works while the project's "Accept legacy user hash" switch is on; prefer the token for the migration |
+| `user_hash` (identity verification, HMAC-SHA256 of `user_id` with Intercom's secret) | Legacy user hash: hex HMAC-SHA256 of the user id with the project secret, passed where the SDK takes the user hash (third argument of `identify`). Works on existing projects while their "Accept legacy user hash" switch is on; projects created in Signed mode don't accept it, so migrate to the token |
 
 The signing moves with the secret: replace the Intercom secret in the backend with Gleap's identity key (environment variables `GLEAP_IDENTITY_KEY_ID`, `GLEAP_IDENTITY_SECRET`), keep the claims, and the token endpoint the app already calls now returns the Gleap token. With `setUserJwt` the client passes no other contact fields; everything Gleap should know about the contact is a claim. On an installed Gleap SDK without `setUserJwt`, pass the token as the third argument of `identify(userId, data, token)`.
 
 If the Intercom integration was unsigned (no `user_hash`, no `intercom_user_jwt`) and the app has a backend, add the token now rather than migrating the gap: Kai shows billing and account data only to signed contacts, and fields a project marks "Only signed updates" ignore unsigned writes. Plain unsigned `identify` only when there is no backend; say so in the PR. Server-side signing examples are in `mapping-server-api.md`; the `gleap-sdk-setup` skill's "User Identification" section has the full rules when it is installed.
 
-**The PR description must state** whether identify is signed with the identity token, with the legacy user hash, or unsigned (and why), and which environment variables the backend needs.
+Creating an identity key protects nothing and doesn't switch the project. New Gleap projects start in **Signed** mode and accept identity tokens only; existing (**Classic**) projects keep working as before until someone checks a token (**Check a token from your backend**) and clicks **Turn on signed sessions** on the same page. Guide: https://docs.gleap.ai/en/articles/709-customer-identity
+
+**The PR description must state** whether identify is signed with the identity token, with the legacy user hash, or unsigned (and why), and which environment variables the backend needs. For the token, add a required action: create an identity key under Settings → Security → Customer identity, set `GLEAP_IDENTITY_KEY_ID` and `GLEAP_IDENTITY_SECRET` on the backend, check a token, and click **Turn on signed sessions** if the page still offers it.
 
 ## Mapping Files
 
@@ -91,7 +93,7 @@ For projects using multiple platforms, read all relevant files. Common combinati
 
 ## Important Notes
 
-- Intercom uses `app_id` + `api_key` (separate for iOS/Android). Gleap uses a single API key per project from https://app.gleap.io
+- Intercom uses `app_id` + `api_key` (separate for iOS/Android). Gleap uses a single Project ID per project (Settings → Project → General at https://app.gleap.ai) for every client SDK; server-side calls use an API key from Settings → Developer → API keys
 - Intercom's `boot()` combines initialization + user identification. In Gleap, these are separate: `initialize()` then `setUserJwt()` (signed) or `identify()` (unsigned)
 - Intercom's `intercom_user_jwt` maps 1:1 to Gleap's identity token (`user_id` → `userId`, extra claims → signed attributes), `Intercom.setUserJwt` → `Gleap.setUserJwt`; Intercom's identity verification `user_hash` → Gleap's legacy user hash. Re-sign on the backend with Gleap's identity key
 - Intercom's `shutdown()` = Gleap's `clearIdentity()`
