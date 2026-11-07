@@ -30,10 +30,10 @@ Authorization: Bearer <INTERCOM_TOKEN>
 Intercom-Version: 2.15
 ```
 
-**Gleap (legacy API):**
+**Gleap (`/admin/*` routes):**
 ```
 Content-Type: application/json
-Api-Token: YOUR_SECRET_API_TOKEN
+Api-Token: YOUR_API_KEY
 ```
 
 **Gleap (v3 API):**
@@ -43,7 +43,7 @@ Project: YOUR_PROJECT_ID
 Content-Type: application/json
 ```
 
-Get your Gleap API key and project ID from **Project Settings > Security > API Key** in the Gleap dashboard.
+Both use the same API key: generate one under **Settings → Developer → API keys** in the Gleap dashboard (https://app.gleap.ai). One key works on every server route: the v3 API (`Authorization: Bearer` plus the `Project` header), the `/admin/*` routes (as `Api-Token`), the Segment destination and the server-to-server Conversations API. The `Project` header takes the Project ID from **Settings → Project → General** (the same ID the SDKs are initialized with). Keep the API key in an environment variable such as `GLEAP_API_TOKEN`, never in client code or the repository. The project secret is legacy: it only works while **Accept the project secret on the server API** is on, so use an API key for new code. Docs: https://docs.gleap.ai/en/articles/716-api-overview
 
 ## User/Contact Management
 
@@ -63,10 +63,10 @@ curl -X POST https://api.intercom.io/contacts \
   }'
 ```
 
-**After (Gleap legacy API):**
+**After (Gleap admin API):**
 ```bash
 curl -X POST https://api.gleap.io/admin/identify \
-  -H "Api-Token: YOUR_SECRET_API_TOKEN" \
+  -H "Api-Token: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "userId": "123",
@@ -104,13 +104,13 @@ curl -X POST https://api.gleap.io/v3/sessions \
 
 ## Identity Verification to Identity Token
 
-Intercom's identity verification signs on the backend: an HMAC-SHA256 of `user_id` with the identity verification secret (`user_hash`), or a JWT with the same secret (`intercom_user_jwt`). Gleap does the same with an identity token: an HS256 JWT signed with one of the project's identity keys (Gleap dashboard > Settings > Security > Identity keys; the secret is shown once), key id in the `kid` header, `exp` at most one hour ahead. Keep the endpoint the app already calls for the Intercom value and make it return the Gleap token.
+Intercom's identity verification signs on the backend: an HMAC-SHA256 of `user_id` with the identity verification secret (`user_hash`), or a JWT with the same secret (`intercom_user_jwt`). Gleap does the same with an identity token: an HS256 JWT signed with one of the project's identity keys (Gleap dashboard > **Settings → Security → Customer identity**, **Create an identity key**; the secret is shown once), key id in the `kid` header, `exp` at most one hour ahead. Keep the endpoint the app already calls for the Intercom value and make it return the Gleap token.
 
 | Intercom | Gleap |
 |----------|-------|
 | Identity verification secret | Identity key: id in `GLEAP_IDENTITY_KEY_ID`, secret in `GLEAP_IDENTITY_SECRET` (never in the client) |
 | `intercom_user_jwt` claims `user_id`, `email`, `name`, … | `userId` (required), `email`, `name`, `phone`, `company: { id, name }`, `plan`, provider ids (`stripeCustomerId`, …); every other top-level claim becomes a signed attribute |
-| `user_hash` = HMAC-SHA256(`user_id`, secret) | Legacy user hash = hex HMAC-SHA256(`userId`, the project's secret API key); accepted while "Accept legacy user hash" is on |
+| `user_hash` = HMAC-SHA256(`user_id`, secret) | Legacy user hash = hex HMAC-SHA256(`userId`, the project secret); accepted on existing projects while "Accept legacy user hash" is on, never on projects created in Signed mode |
 
 **Before (Intercom, Node):**
 ```javascript
@@ -142,9 +142,9 @@ const gleapToken = jwt.sign(
 
 Any JWT library works the same way (PyJWT, firebase/php-jwt, ruby-jwt, golang-jwt, System.IdentityModel.Tokens.Jwt): HS256, `kid` header, one-hour expiry. The client passes the token with `Gleap.setUserJwt(token)` (see the platform mapping files). Omit claims the app does not have; never invent values.
 
-**Legacy user hash (only when the app must stay on `identify(userId, data, userHash)`):**
+**Legacy user hash (only for an existing project that accepts it, when the app must stay on `identify(userId, data, userHash)`; signed with the project secret, not an API key):**
 ```javascript
-const userHash = crypto.createHmac("sha256", process.env.GLEAP_SECRET_API_TOKEN).update(user.id).digest("hex");
+const userHash = crypto.createHmac("sha256", process.env.GLEAP_PROJECT_SECRET).update(user.id).digest("hex");
 ```
 
 ## Event Tracking
@@ -162,10 +162,10 @@ curl -X POST https://api.intercom.io/events \
   }'
 ```
 
-**After (Gleap legacy API):**
+**After (Gleap admin API):**
 ```bash
 curl -X POST https://api.gleap.io/admin/track \
-  -H "Api-Token: YOUR_SECRET_API_TOKEN" \
+  -H "Api-Token: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "events": [{
@@ -244,7 +244,8 @@ await client.events.create({ eventName: 'signup', userId: '123' });
 ```javascript
 import GleapAdmin from "gleap-admin";
 
-GleapAdmin.initialize("SECRET_API_TOKEN");
+// An API key from Settings → Developer → API keys, read from the environment.
+GleapAdmin.initialize(process.env.GLEAP_API_TOKEN);
 
 GleapAdmin.identify("123", {
   email: "user@example.com",

@@ -70,12 +70,12 @@ import 'package:gleap_sdk/gleap_sdk.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  Gleap.initialize(token: 'GLEAP_API_KEY');
+  Gleap.initialize(projectId: 'GLEAP_PROJECT_ID'); // gleap_sdk 19.5.0+; older versions: token:
   runApp(App());
 }
 ```
 
-Note: Intercom needs separate iOS/Android keys. Gleap uses a single API key.
+Note: Intercom needs separate iOS/Android keys. Gleap uses a single Project ID.
 
 ## User Identity
 

@@ -22,7 +22,7 @@ import 'package:flutter/material.dart';
 import 'package:gleap_sdk/gleap_sdk.dart';
 
 Future gleapInitialize() async {
-  Gleap.initialize(token: 'API_KEY');
+  Gleap.initialize(projectId: 'PROJECT_ID'); // older gleap_sdk versions: token: 'PROJECT_ID'
 }
 ```
 

@@ -14,7 +14,7 @@ In your `deviceready` handler:
 
 ```javascript
 document.addEventListener('deviceready', function () {
-    cordova.plugins.GleapPlugin.initialize("API_KEY");
+    cordova.plugins.GleapPlugin.initialize("PROJECT_ID");
 }, false);
 ```
 
